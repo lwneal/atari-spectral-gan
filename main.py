@@ -86,7 +86,6 @@ def train(epoch, max_batches=100):
         optim_enc.step()
         optim_gen.step()
 
-        """
         # update discriminator
         for _ in range(disc_iters):
             z = sample_z(args.batch_size, Z_dim)
@@ -113,11 +112,11 @@ def train(epoch, max_batches=100):
             gen_loss = nn.BCEWithLogitsLoss()(discriminator(generator(z)), Variable(torch.ones(args.batch_size, 1).cuda()))
         gen_loss.backward()
         optim_gen.step()
-        """
 
         if batch_idx % 10 == 0:
-            #print('disc loss', disc_loss.data[0], 'gen loss', gen_loss.data[0])
-            print("Autoencoder loss: {:.3f}".format(aac_loss.data[0]))
+            print('disc loss', disc_loss.data[0], 'gen loss', gen_loss.data[0])
+            print("Losses:  AAC: {:.3f}  D {:.3f}  G {:.3f}".format(
+                aac_loss.data[0], disc_loss.data[0], gen_loss.data[0]))
         if batch_idx == max_batches:
             print('Training completed {} batches, ending epoch'.format(max_batches))
             break
