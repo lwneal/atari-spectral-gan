@@ -55,38 +55,45 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
         self.z_dim = z_dim
 
-        self.model = nn.Sequential(
-            nn.ConvTranspose2d(z_dim, 512, 4, stride=1),
-            nn.BatchNorm2d(512),
-            nn.ReLU(),
-            nn.ConvTranspose2d(512, 256, 4, stride=2, padding=(0,0)), # 10
-            nn.BatchNorm2d(256),
-            nn.ReLU(),
-            nn.ConvTranspose2d(256, 128, 4, stride=2, padding=(1,1)), # 20
-            nn.BatchNorm2d(128),
-            nn.ReLU(),
-            nn.ConvTranspose2d(128, 128, 4, stride=2, padding=(1,1)), # 40
-            nn.BatchNorm2d(128),
-            nn.ReLU(),
-            nn.ConvTranspose2d(128, 64, 4, stride=2, padding=(1,1)),  # 80
-            nn.BatchNorm2d(64),
-            nn.ReLU())
-        # Generate a grid to help learn absolute position
-        grid = np.zeros((1, 80, 80))
-        grid[:,:,::5] = 1
-        self.placement_grid = Variable(torch.Tensor(grid).cuda())
-        self.conv_to_rgb = nn.ConvTranspose2d(64 + 1, channels, 3, stride=1, padding=(1,1))
+        self.conv1 = nn.ConvTranspose2d(z_dim, 512, 4, stride=1)
+        self.bn1 = nn.BatchNorm2d(512)
+        self.conv2 = nn.ConvTranspose2d(512, 256, 4, stride=2, padding=(0,0)) # 10
+        self.bn2 = nn.BatchNorm2d(256)
+        self.conv3 = nn.ConvTranspose2d(256, 128, 4, stride=2, padding=(1,1)) # 20
+        self.bn3 = nn.BatchNorm2d(128)
+        self.conv4 = nn.ConvTranspose2d(128, 128, 4, stride=2, padding=(1,1)) # 40
+        self.bn4 = nn.BatchNorm2d(128)
+        self.conv5 = nn.ConvTranspose2d(128, 64, 4, stride=2, padding=(1,1))  # 80
+        self.bn5 = nn.BatchNorm2d(64)
+
+        self.conv_to_rgb = nn.ConvTranspose2d(64, channels, 3, stride=1, padding=(1,1))
 
     def forward(self, z):
         batch_size = z.shape[0]
-        z_in = z.view(-1, self.z_dim, 1, 1)
-        # Run the model except for the last layer
-        x1 = self.model(z_in)
-        # Create a fixed pattern for orientation
-        x2 = self.placement_grid.expand(batch_size, 1, 80, 80)
-        # Combine them along the channels axis
-        x = torch.cat((x1, x2), dim=1)
-        x = nn.Tanh()(self.conv_to_rgb(x))
+        x = z.view(-1, self.z_dim, 1, 1)
+
+        x = self.conv1(x)
+        x = self.bn1(x)
+        x = F.relu(x)
+
+        x = self.conv2(x)
+        x = self.bn2(x)
+        x = F.relu(x)
+
+        x = self.conv3(x)
+        x = self.bn3(x)
+        x = F.relu(x)
+
+        x = self.conv4(x)
+        x = self.bn4(x)
+        x = F.relu(x)
+
+        x = self.conv5(x)
+        x = self.bn5(x)
+        x = F.relu(x)
+
+        x = self.conv_to_rgb(x)
+        x = F.tanh(x)
         return x
 
 # What is w_g supposed to be?
