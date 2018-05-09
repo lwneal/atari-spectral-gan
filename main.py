@@ -9,7 +9,7 @@ from torchvision import datasets, transforms
 from torch import autograd
 from torch.autograd import Variable
 import model
-from dataloader import CustomDataloader
+from atari_dataloader import AtariDataloader
 
 import numpy as np
 import matplotlib
@@ -37,7 +37,7 @@ parser.add_argument('--start_epoch', type=int, default=0)
 args = parser.parse_args()
 
 
-loader = CustomDataloader('/mnt/data/mnist.dataset', batch_size=args.batch_size, image_size=80)
+loader = AtariDataloader(name=args.env_name, batch_size=args.batch_size)
 
 
 print('Building model...')
