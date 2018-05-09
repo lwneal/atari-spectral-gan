@@ -8,8 +8,8 @@ from torch.optim.lr_scheduler import ExponentialLR
 from torchvision import datasets, transforms
 from torch import autograd
 from torch.autograd import Variable
-import model_resnet
 import model
+from dataloader import CustomDataloader
 
 import numpy as np
 import matplotlib
@@ -35,10 +35,7 @@ parser.add_argument('--env_name', type=str, default='Pong-v0')
 args = parser.parse_args()
 
 
-from atari_data import AtariDataloader
-print('Initializing OpenAI environment...')
-loader = AtariDataloader(args.env_name, batch_size=args.batch_size)
-print('Environment initialized')
+loader = CustomDataloader('/mnt/data/mnist.dataset', batch_size=args.batch_size, image_size=80)
 
 
 print('Building model...')
@@ -53,6 +50,7 @@ encoder = model.Encoder(Z_dim).cuda()
 # because the spectral normalization module creates parameters that don't require gradients (u and v), we don't want to 
 # optimize these using sgd. We only let the optimizer operate on parameters that _do_ require gradients
 # TODO: replace Parameters with buffers, which aren't returned from .parameters() method.
+print('Building optimizers')
 optim_disc = optim.Adam(filter(lambda p: p.requires_grad, discriminator.parameters()), lr=args.lr, betas=(0.0,0.9))
 optim_gen = optim.Adam(generator.parameters(), lr=args.lr, betas=(0.0,0.9))
 optim_enc = optim.Adam(filter(lambda p: p.requires_grad, encoder.parameters()), lr=args.lr, betas=(0.0,0.9))
@@ -61,7 +59,7 @@ optim_enc = optim.Adam(filter(lambda p: p.requires_grad, encoder.parameters()), 
 scheduler_d = optim.lr_scheduler.ExponentialLR(optim_disc, gamma=0.99)
 scheduler_g = optim.lr_scheduler.ExponentialLR(optim_gen, gamma=0.99)
 scheduler_e = optim.lr_scheduler.ExponentialLR(optim_enc, gamma=0.99)
-print('finished building model')
+print('Finished building model')
 
 def sample_z(batch_size, z_dim):
     # Normal Distribution

@@ -1,24 +1,14 @@
+# Generate a video from a trained generator
 import argparse
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torch.optim as optim
-from torch.optim.lr_scheduler import ExponentialLR
-from torchvision import datasets, transforms
 from torch.autograd import Variable
-import model_resnet
 import model
 
 import numpy as np
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 import os
 import imutil
 
 
-print('running argparse stuff')
 parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size', type=int, default=64)
 parser.add_argument('--lr', type=float, default=2e-4)
@@ -26,26 +16,19 @@ parser.add_argument('--loss', type=str, default='hinge')
 parser.add_argument('--checkpoint_dir', type=str, default='checkpoints')
 parser.add_argument('--image_dir', type=str, default='input/')
 parser.add_argument('--video_name', type=str, default='sample')
-parser.add_argument('--model', type=str, default='resnet')
 parser.add_argument('--latent_dim', type=int, default=4)
 
 args = parser.parse_args()
 
+GENERATOR_FILENAME = 'checkpoints/gen_34'
 
 print('building model...')
 Z_dim = args.latent_dim
 
-# discriminator = torch.nn.DataParallel(Discriminator()).cuda() # TODO: try out multi-gpu training
-if args.model == 'resnet':
-    discriminator = model_resnet.Discriminator().cuda()
-    generator = model_resnet.Generator(Z_dim).cuda()
-else:
-    discriminator = model.Discriminator().cuda()
-    generator = model.Generator(Z_dim).cuda()
+generator = model.Generator(Z_dim).cuda()
 
 print('Loading model...')
-discriminator.load_state_dict(torch.load('checkpoints/disc_34'))
-generator.load_state_dict(torch.load('checkpoints/gen_34'))
+generator.load_state_dict(torch.load(GENERATOR_FILENAME))
 print('Loaded model')
 
 output_video_name = args.video_name
