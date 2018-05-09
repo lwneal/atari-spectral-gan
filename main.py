@@ -32,7 +32,7 @@ parser.add_argument('--latent_size', type=int, default=10)
 parser.add_argument('--model', type=str, default='dcgan')
 parser.add_argument('--env_name', type=str, default='Pong-v0')
 
-parser.add_argument('--load_epoch', type=int, default=None)
+parser.add_argument('--start_epoch', type=int, default=0)
 
 args = parser.parse_args()
 
@@ -49,10 +49,10 @@ discriminator = model.Discriminator().cuda()
 generator = model.Generator(Z_dim).cuda()
 encoder = model.Encoder(Z_dim).cuda()
 
-if args.load_epoch:
-    generator.load_state_dict(torch.load('checkpoints/gen_{}'.format(args.load_epoch)))
-    encoder.load_state_dict(torch.load('checkpoints/enc_{}'.format(args.load_epoch)))
-    discriminator.load_state_dict(torch.load('checkpoints/disc_{}'.format(args.load_epoch)))
+if args.start_epoch:
+    generator.load_state_dict(torch.load('checkpoints/gen_{}'.format(args.start_epoch)))
+    encoder.load_state_dict(torch.load('checkpoints/enc_{}'.format(args.start_epoch)))
+    discriminator.load_state_dict(torch.load('checkpoints/disc_{}'.format(args.start_epoch)))
 
 # because the spectral normalization module creates parameters that don't require gradients (u and v), we don't want to 
 # optimize these using sgd. We only let the optimizer operate on parameters that _do_ require gradients
@@ -236,7 +236,7 @@ def make_video(output_video_name):
 def main():
     print('creating checkpoint directory')
     os.makedirs(args.checkpoint_dir, exist_ok=True)
-    for epoch in range(args.epochs):
+    for epoch in range(args.start_epoch, args.epochs):
         print('starting epoch {}'.format(epoch))
         train(epoch)
         make_video('epoch_{:03d}'.format(epoch))
