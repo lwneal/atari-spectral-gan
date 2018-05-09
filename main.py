@@ -32,6 +32,8 @@ parser.add_argument('--latent_size', type=int, default=10)
 parser.add_argument('--model', type=str, default='dcgan')
 parser.add_argument('--env_name', type=str, default='Pong-v0')
 
+parser.add_argument('--load_epoch', type=int, default=None)
+
 args = parser.parse_args()
 
 
@@ -46,6 +48,11 @@ disc_iters = 5
 discriminator = model.Discriminator().cuda()
 generator = model.Generator(Z_dim).cuda()
 encoder = model.Encoder(Z_dim).cuda()
+
+if args.load_epoch:
+    generator.load_state_dict(torch.load('checkpoints/gen_{}'.format(args.load_epoch)))
+    encoder.load_state_dict(torch.load('checkpoints/enc_{}'.format(args.load_epoch)))
+    discriminator.load_state_dict(torch.load('checkpoints/disc_{}'.format(args.load_epoch)))
 
 # because the spectral normalization module creates parameters that don't require gradients (u and v), we don't want to 
 # optimize these using sgd. We only let the optimizer operate on parameters that _do_ require gradients
@@ -236,6 +243,7 @@ def main():
         evaluate(epoch)
         torch.save(discriminator.state_dict(), os.path.join(args.checkpoint_dir, 'disc_{}'.format(epoch)))
         torch.save(generator.state_dict(), os.path.join(args.checkpoint_dir, 'gen_{}'.format(epoch)))
+        torch.save(encoder.state_dict(), os.path.join(args.checkpoint_dir, 'enc_{}'.format(epoch)))
 
 
 if __name__ == '__main__':
