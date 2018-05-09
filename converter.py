@@ -67,7 +67,7 @@ class ImageConverter(Converter):
         if self.torch:
             img = img.transpose((2,0,1))
         if self.normalize:
-            img *= 1.0 / 255
+            img = (img - 128) / 128.
         return img
 
     def from_array(self, array):
