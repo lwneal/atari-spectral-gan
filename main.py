@@ -151,7 +151,7 @@ def evaluate(epoch):
     plt.close(fig)
     scores = []
     for i in range(10):
-        scores.append(evaluate_fit(epoch, i))
+        scores.append(evaluate_fit_gd(epoch, i))
     avg_mse = np.array(scores).mean()
     print("Epoch {} Avg Encoding MSE:{:.4f}".format(epoch, avg_mse))
 
@@ -166,7 +166,7 @@ def evaluate(epoch):
         epoch, avg_mse, avg_smoothness))
 
 
-def evaluate_fit(epoch, idx=0):
+def evaluate_fit_gd(epoch, idx=0):
     # Get a random Atari frame, try to fit it by gradient descent
     frames, _ = next(loader)
     frame = frames[idx]
@@ -187,7 +187,7 @@ def evaluate_fit(epoch, idx=0):
         speed *= .99  # annealing schedule
 
     if idx == 0:
-        filename = 'fit_{:03d}_{:04d}.png'.format(epoch, idx)
+        filename = 'gd_fit_{:03d}_{:04d}.png'.format(epoch, idx)
         comparison = torch.cat((frame.expand(1,-1,-1,-1), encoded.expand((1, -1, -1, -1))))
         imutil.show(comparison, filename=filename)
     return loss.data[0]
@@ -199,9 +199,9 @@ def evaluate_smoothness(epoch, idx=0):
     first_frame = next(loader)[0][idx]
     second_frame = next(loader)[0][idx]
 
-    f0 = Variable(first_frame.cuda())
-    f1 = Variable(second_frame.cuda())
-    distance = (encode(f0) - encode(f1)) ** 2
+    f0 = Variable(first_frame.cuda()).unsqueeze(0)
+    f1 = Variable(second_frame.cuda()).unsqueeze(0)
+    distance = (encoder(f0) - encoder(f1)) ** 2
     return distance.mean().data[0]
 
 
@@ -223,10 +223,9 @@ fixed_z = Variable(torch.randn(args.batch_size, Z_dim).cuda())
 fixed_zprime = Variable(torch.randn(args.batch_size, Z_dim).cuda())
 def make_video(output_video_name):
     v = imutil.VideoMaker(output_video_name)
-    for i in range(400):
-        theta = abs(i - 200) / 200.
+    for i in range(100):
+        theta = abs(i - 50) / 50.
         z = theta * fixed_z + (1 - theta) * fixed_zprime
-        #z = z[:args.batch_size]
         samples = generator(z).cpu().data.numpy()
         pixels = samples.transpose((0,2,3,1)) * 0.5 + 0.5
         v.write_frame(pixels)
@@ -238,9 +237,9 @@ def main():
     os.makedirs(args.checkpoint_dir, exist_ok=True)
     for epoch in range(args.start_epoch, args.epochs):
         print('starting epoch {}'.format(epoch))
-        train(epoch)
-        make_video('epoch_{:03d}'.format(epoch))
         evaluate(epoch)
+        make_video('epoch_{:03d}'.format(epoch))
+        train(epoch)
         torch.save(discriminator.state_dict(), os.path.join(args.checkpoint_dir, 'disc_{}'.format(epoch)))
         torch.save(generator.state_dict(), os.path.join(args.checkpoint_dir, 'gen_{}'.format(epoch)))
         torch.save(encoder.state_dict(), os.path.join(args.checkpoint_dir, 'enc_{}'.format(epoch)))
