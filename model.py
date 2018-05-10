@@ -93,7 +93,7 @@ class Generator(nn.Module):
         x = F.relu(x)
 
         x = self.conv_to_rgb(x)
-        x = F.tanh(x)
+        x = F.sigmoid(x)
         return x
 
 # What is w_g supposed to be?

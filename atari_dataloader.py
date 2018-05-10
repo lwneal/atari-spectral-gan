@@ -35,7 +35,7 @@ class AtariDataloader():
                 ly, ry, bx, by = find_positions(pixels)
                 if bx or by:
                     break
-            pixels = (pixels - 128) / 128
+            pixels = pixels / 255
 
             # Output batch x channels x height x width
             pixels = pixels.transpose((2,0,1))
