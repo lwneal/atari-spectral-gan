@@ -78,18 +78,6 @@ def train(epoch, max_batches=100):
     for batch_idx, (data, target) in enumerate(datasource):
         data = Variable(data.cuda())
 
-        # reconstruct images
-        optim_enc.zero_grad()
-        optim_gen.zero_grad()
-
-        reconstructed = generator(encoder(data))
-
-        aac_loss = torch.sum((reconstructed - data)**2)
-        aac_loss.backward()
-
-        optim_enc.step()
-        optim_gen.step()
-
         # update discriminator
         for _ in range(disc_iters):
             z = sample_z(args.batch_size, Z_dim)
@@ -99,13 +87,20 @@ def train(epoch, max_batches=100):
             disc_loss.backward()
             optim_disc.step()
 
-        z = sample_z(args.batch_size, Z_dim)
+        optim_enc.zero_grad()
+        optim_gen.zero_grad()
+
+        # reconstruct images
+        reconstructed = generator(encoder(data))
+        aac_loss = torch.mean((reconstructed - data)**2)
+        aac_loss.backward()
 
         # update generator
-        optim_disc.zero_grad()
-        optim_gen.zero_grad()
+        z = sample_z(args.batch_size, Z_dim)
         gen_loss = -discriminator(generator(z)).mean()
         gen_loss.backward()
+
+        optim_enc.step()
         optim_gen.step()
 
         if batch_idx % 10 == 0:
