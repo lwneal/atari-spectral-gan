@@ -1,4 +1,5 @@
 import argparse
+from itertools import islice
 import random
 import torch
 import torch.nn as nn
@@ -24,7 +25,6 @@ print('Parsing arguments')
 parser = argparse.ArgumentParser()
 parser.add_argument('--batch_size', type=int, default=64)
 parser.add_argument('--lr', type=float, default=2e-4)
-parser.add_argument('--loss', type=str, default='hinge')
 parser.add_argument('--checkpoint_dir', type=str, default='checkpoints')
 parser.add_argument('--epochs', type=int, default=10)
 
@@ -74,9 +74,8 @@ def sample_z(batch_size, z_dim):
     return Variable(z.cuda())
 
 def train(epoch, max_batches=100):
-    for batch_idx, (data, target) in enumerate(loader):
-        if data.size()[0] != args.batch_size:
-            continue
+    datasource = islice(loader, max_batches)
+    for batch_idx, (data, target) in enumerate(datasource):
         data = Variable(data.cuda())
 
         # reconstruct images
@@ -96,13 +95,7 @@ def train(epoch, max_batches=100):
             z = sample_z(args.batch_size, Z_dim)
             optim_disc.zero_grad()
             optim_gen.zero_grad()
-            if args.loss == 'hinge':
-                disc_loss = nn.ReLU()(1.0 - discriminator(data)).mean() + nn.ReLU()(1.0 + discriminator(generator(z))).mean()
-            elif args.loss == 'wasserstein':
-                disc_loss = -discriminator(data).mean() + discriminator(generator(z)).mean()
-            else:
-                disc_loss = nn.BCEWithLogitsLoss()(discriminator(data), Variable(torch.ones(args.batch_size, 1).cuda())) + \
-                    nn.BCEWithLogitsLoss()(discriminator(generator(z)), Variable(torch.zeros(args.batch_size, 1).cuda()))
+            disc_loss = nn.ReLU()(1.0 - discriminator(data)).mean() + nn.ReLU()(1.0 + discriminator(generator(z))).mean()
             disc_loss.backward()
             optim_disc.step()
 
@@ -111,10 +104,7 @@ def train(epoch, max_batches=100):
         # update generator
         optim_disc.zero_grad()
         optim_gen.zero_grad()
-        if args.loss == 'hinge' or args.loss == 'wasserstein':
-            gen_loss = -discriminator(generator(z)).mean()
-        else:
-            gen_loss = nn.BCEWithLogitsLoss()(discriminator(generator(z)), Variable(torch.ones(args.batch_size, 1).cuda()))
+        gen_loss = -discriminator(generator(z)).mean()
         gen_loss.backward()
         optim_gen.step()
 
@@ -122,9 +112,6 @@ def train(epoch, max_batches=100):
             print('disc loss', disc_loss.data[0], 'gen loss', gen_loss.data[0])
             print("Losses:  AAC: {:.3f}  D {:.3f}  G {:.3f}".format(
                 aac_loss.data[0], disc_loss.data[0], gen_loss.data[0]))
-        if batch_idx == max_batches:
-            print('Training completed {} batches, ending epoch'.format(max_batches))
-            break
     scheduler_e.step()
     scheduler_d.step()
     scheduler_g.step()
