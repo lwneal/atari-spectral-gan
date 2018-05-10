@@ -120,90 +120,14 @@ def train(epoch, max_batches=100):
 fixed_z = sample_z(args.batch_size, Z_dim)
 def evaluate(epoch):
     samples = generator(fixed_z).cpu().data.numpy()[:64]
-    fig = plt.figure(figsize=(8, 8))
-    gs = gridspec.GridSpec(8, 8)
-    gs.update(wspace=0.05, hspace=0.05)
-    for i, sample in enumerate(samples):
-        ax = plt.subplot(gs[i])
-        plt.axis('off')
-        ax.set_xticklabels([])
-        ax.set_yticklabels([])
-        ax.set_aspect('equal')
-        plt.imshow(sample.transpose((1,2,0)) * 0.5 + 0.5)
 
-    if not os.path.exists('out/'):
-        os.makedirs('out/')
+    # TODO: Autoencode a few images, check how good they are
 
-    plt.savefig('out/{}.png'.format(str(epoch).zfill(3)), bbox_inches='tight')
-    plt.close(fig)
-    scores = []
-    for i in range(10):
-        scores.append(evaluate_fit_gd(epoch, i))
-    avg_mse = np.array(scores).mean()
-    print("Epoch {} Avg Encoding MSE:{:.4f}".format(epoch, avg_mse))
+    # TODO: Generate a few images, check out good they are
 
-    smoothness_scores = []
-    for i in range(3):
-        distance = evaluate_smoothness(epoch, i)
-        smoothness_scores.append(distance)
-    avg_smoothness = np.array(smoothness_scores).mean()
-    print('Epoch {} smoothness measure: {:.6f}'.format(epoch, avg_smoothness))
+    # TODO: For adjacent frames, compute their distance in the latent space
 
-    print('Epoch {} MSE {:.4f} smoothness {:.6f}'.format(
-        epoch, avg_mse, avg_smoothness))
-
-
-def evaluate_fit_gd(epoch, idx=0):
-    # Get a random Atari frame, try to fit it by gradient descent
-    frames, _ = next(loader)
-    frame = frames[idx]
-    frame = Variable(frame.cuda())
-
-    # TODO: Instead of standard gradient descent, this should be
-    #  projected gradient descent on eg. the unit sphere if the
-    #  behavior of sample_z is changed
-    z = Variable(torch.randn(1, Z_dim).cuda(), requires_grad=True)
-
-    speed = .01
-    for _ in range(100):
-        encoded = generator(z)[0]
-        mse = (frame - encoded) ** 2
-        loss = mse.sum()
-        df_dz = autograd.grad(loss, z, loss)[0]
-        z = z - speed * df_dz
-        speed *= .99  # annealing schedule
-
-    if idx == 0:
-        filename = 'gd_fit_{:03d}_{:04d}.png'.format(epoch, idx)
-        comparison = torch.cat((frame.expand(1,-1,-1,-1), encoded.expand((1, -1, -1, -1))))
-        imutil.show(comparison, filename=filename)
-    return loss.data[0]
-
-
-def evaluate_smoothness(epoch, idx=0):
-    # Get two consecutive, similar Atari frames
-    # How far apart are their representations?
-    first_frame = next(loader)[0][idx]
-    second_frame = next(loader)[0][idx]
-
-    f0 = Variable(first_frame.cuda()).unsqueeze(0)
-    f1 = Variable(second_frame.cuda()).unsqueeze(0)
-    distance = (encoder(f0) - encoder(f1)) ** 2
-    return distance.mean().data[0]
-
-
-def encode(frame):
-    speed = .01
-    z = Variable(torch.randn(1, Z_dim).cuda(), requires_grad=True)
-    for _ in range(100):
-        encoded = generator(z)[0]
-        mse = (frame - encoded) ** 2
-        loss = mse.sum()
-        df_dz = autograd.grad(loss, z, loss)[0]
-        z = z - speed * df_dz
-        speed *= .99  # annealing schedule
-    return encoded
-
+    print('TODO: evaluate')
 
 
 fixed_z = Variable(torch.randn(args.batch_size, Z_dim).cuda())
