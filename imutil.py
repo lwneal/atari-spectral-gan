@@ -227,14 +227,17 @@ class VideoMaker(object):
         if not self.filename.endswith('mjpeg'):
             self.filename = self.filename + '.mjpeg'
 
-    def write_frame(self, frame, caption=None):
-        show(frame * 255.0,
-                video_filename=self.filename,
-                caption=caption,
-                font_size=12,
-                resize_to=(512,512),
-                normalize_color=False,
-                display=False)
+    def write_frame(self,
+                    frame,
+                    font_size=12,
+                    resize_to=(512,512),
+                    **kwargs):
+        show(frame,
+            video_filename=self.filename,
+            font_size=font_size,
+            resize_to=resize_to,
+            display=False,
+            **kwargs)
 
     def finish(self):
         encode_video(self.filename)
