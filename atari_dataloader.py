@@ -10,7 +10,7 @@ import torch
 
 
 class AtariDataloader():
-    def __init__(self, name, batch_size):
+    def __init__(self, name='Pong-v0', batch_size=16):
         self.environments = []
         for i in range(batch_size):
             env = gym.make(name)

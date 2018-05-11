@@ -32,7 +32,7 @@ args = parser.parse_args()
 Z_dim = args.latent_size
 
 
-loader = AtariDataloader(name='Pong-v0', batch_size=args.batch_size)
+loader = AtariDataloader(batch_size=args.batch_size)
 
 
 print('Building model...')
@@ -114,7 +114,7 @@ fixed_z = sample_z(args.batch_size, Z_dim)
 def evaluate(epoch):
     samples = generator(fixed_z).cpu().data.numpy()[:64]
 
-    eval_loader = AtariDataloader(name='Pong-v0', batch_size=args.batch_size)
+    eval_loader = AtariDataloader(batch_size=args.batch_size)
     real_images, _ = next(eval_loader)
     real_images = Variable(real_images).cuda()
 
