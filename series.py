@@ -6,6 +6,8 @@ import time
 import datetime
 import pytz
 from tqdm import tqdm
+import tensorboard_logger
+tensorboard_logger.configure('runs/run-0')
 
 
 def resample(x, desired_length):
@@ -63,19 +65,23 @@ class TimeSeries:
     def __str__(self):
         return self.format_all()
 
-    def __init__(self, title=None, epoch_length=None):
+    def __init__(self, title=None, epoch_length=None, tensorboard=True):
         self.series = {}
         self.predictions = {}
         self.start_time = time.time()
         self.last_printed_at = time.time()
         self.title = title
         self.epoch_length = epoch_length
+        self.tensorboard = tensorboard
 
     def collect(self, name, value):
         if not self.series:
             self.start_time = time.time()
         if name not in self.series:
             self.series[name] = []
+        if self.tensorboard:
+            step = len(self.series[name])
+            tensorboard_logger.log_value(name, value, step)
         self.series[name].append(convert_to_scalar(value))
 
     def collect_prediction(self, name, logits, ground_truth):

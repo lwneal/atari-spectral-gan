@@ -115,16 +115,26 @@ fixed_z = sample_z(args.batch_size, Z_dim)
 def evaluate(epoch):
     samples = generator(fixed_z).cpu().data.numpy()[:64]
 
-    # TODO: Autoencode a few images, check how good they are
+    eval_loader = AtariDataloader(name='Pong-v0', batch_size=args.batch_size)
+    real_images, _ = next(eval_loader)
+    real_images = Variable(real_images).cuda()
 
-    # TODO: Generate a few images, check out good they are
+    # Reconstruct real frames
+    reconstructed = generator(encoder(real_images))
+    reconstruction_l2 = torch.mean((reconstructed - real_images) ** 2).data[0]
 
-    # TODO: For adjacent frames, compute their distance in the latent space
+    # Reconstruct generated frames
+    reconstructed = generator(encoder(generator(fixed_z)))
+    cycle_reconstruction_l2 = torch.mean((real_images - reconstructed) ** 2).data[0]
 
-    print('TODO: evaluate')
+    # TODO: Measure "goodness" of generated images
+
+    # TODO: Measure disentanglement of latent codes
+
     return {
-        'foo_score': 1,
-        'sample_avg': samples.mean(),
+        'generated_pixel_mean': samples.mean(),
+        'reconstruction_l2': reconstruction_l2,
+        'cycle_reconstruction_l2': cycle_reconstruction_l2,
     }
 
 
