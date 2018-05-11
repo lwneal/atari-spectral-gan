@@ -59,7 +59,7 @@ def shorten(words, maxlen=30):
 
 def formatted_time(timezone='America/Los_Angeles'):
     tz = pytz.timezone(timezone)
-    fmt = '%I:%M:%S %p, %a %b %m %Y'
+    fmt = '%I:%M:%S %p, %a %b %d %Y'
     now = datetime.datetime.now(tz).strftime(fmt)
     return now
 
