@@ -1,6 +1,9 @@
 import argparse
-from itertools import islice
+import numpy as np
+import os
 import random
+from itertools import islice
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,16 +12,10 @@ from torch.optim.lr_scheduler import ExponentialLR
 from torchvision import datasets, transforms
 from torch import autograd
 from torch.autograd import Variable
+
 import model
 from atari_dataloader import AtariDataloader
 from series import TimeSeries
-
-import numpy as np
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
-import os
 import imutil
 
 
@@ -114,6 +111,7 @@ def train(epoch, max_batches=100):
     scheduler_e.step()
     scheduler_d.step()
     scheduler_g.step()
+    print(ts)
 
 
 fixed_z = sample_z(args.batch_size, Z_dim)
@@ -127,6 +125,10 @@ def evaluate(epoch):
     # TODO: For adjacent frames, compute their distance in the latent space
 
     print('TODO: evaluate')
+    return {
+        'foo_score': 1,
+        'sample_avg': samples.mean(),
+    }
 
 
 fixed_z = Variable(torch.randn(1, Z_dim).cuda())
@@ -145,14 +147,20 @@ def make_video(output_video_name):
 def main():
     print('creating checkpoint directory')
     os.makedirs(args.checkpoint_dir, exist_ok=True)
-    for epoch in range(args.start_epoch, args.epochs):
+    ts = TimeSeries('Evaluation', args.epochs)
+    for epoch in range(args.epochs):
         print('starting epoch {}'.format(epoch))
-        evaluate(epoch)
+        metrics = evaluate(epoch)
+        for key, value in metrics.items():
+            ts.collect(key, value)
+        print(ts)
         make_video('epoch_{:03d}'.format(epoch))
         train(epoch)
         torch.save(discriminator.state_dict(), os.path.join(args.checkpoint_dir, 'disc_{}'.format(epoch)))
         torch.save(generator.state_dict(), os.path.join(args.checkpoint_dir, 'gen_{}'.format(epoch)))
         torch.save(encoder.state_dict(), os.path.join(args.checkpoint_dir, 'enc_{}'.format(epoch)))
+    # TODO: Generate graphs from evaluation metrics
+    print(ts)
 
 
 if __name__ == '__main__':
