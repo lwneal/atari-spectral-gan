@@ -67,9 +67,8 @@ def sample_z(batch_size, z_dim):
     return Variable(z.cuda())
 
 
-def train(epoch, max_batches=100, disc_iters=5):
+def train(epoch, ts, max_batches=100, disc_iters=5):
     datasource = islice(loader, max_batches)
-    ts = TimeSeries('Wasserstein GAN', max_batches)
 
     for batch_idx, (data, target) in enumerate(datasource):
         data = Variable(data.cuda())
@@ -154,20 +153,21 @@ def make_video(output_video_name):
 def main():
     print('creating checkpoint directory')
     os.makedirs(args.checkpoint_dir, exist_ok=True)
-    ts = TimeSeries('Evaluation', args.epochs)
+    batches_per_epoch = 100
+    ts_train = TimeSeries('Training', batches_per_epoch)
+    ts_eval = TimeSeries('Evaluation', args.epochs)
     for epoch in range(args.epochs):
         print('starting epoch {}'.format(epoch))
         metrics = evaluate(epoch)
         for key, value in metrics.items():
-            ts.collect(key, value)
-        print(ts)
+            ts_eval.collect(key, value)
+        print(ts_eval)
         make_video('epoch_{:03d}'.format(epoch))
-        train(epoch)
+        train(epoch, ts_train, batches_per_epoch)
+        print(ts_train)
         torch.save(discriminator.state_dict(), os.path.join(args.checkpoint_dir, 'disc_{}'.format(epoch)))
         torch.save(generator.state_dict(), os.path.join(args.checkpoint_dir, 'gen_{}'.format(epoch)))
         torch.save(encoder.state_dict(), os.path.join(args.checkpoint_dir, 'enc_{}'.format(epoch)))
-    # TODO: Generate graphs from evaluation metrics
-    print(ts)
 
 
 if __name__ == '__main__':

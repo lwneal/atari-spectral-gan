@@ -7,7 +7,9 @@ import datetime
 import pytz
 from tqdm import tqdm
 import tensorboard_logger
-tensorboard_logger.configure('runs/run-0')
+
+run_id = 'runs/run-{}'.format(int(time.time()))
+tensorboard_logger.configure(run_id)
 
 
 def resample(x, desired_length):
@@ -45,6 +47,7 @@ def convert_to_scalar(x):
         return float(x)
     except:
         pass
+    print('Warning: TimeSeries failed to convert scalar')
     return 0
 
 
