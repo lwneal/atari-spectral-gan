@@ -11,6 +11,7 @@ from torch import autograd
 from torch.autograd import Variable
 import model
 from atari_dataloader import AtariDataloader
+from series import TimeSeries
 
 import numpy as np
 import matplotlib
@@ -29,7 +30,6 @@ parser.add_argument('--checkpoint_dir', type=str, default='checkpoints')
 parser.add_argument('--epochs', type=int, default=10)
 
 parser.add_argument('--latent_size', type=int, default=10)
-parser.add_argument('--model', type=str, default='dcgan')
 parser.add_argument('--env_name', type=str, default='Pong-v0')
 
 parser.add_argument('--start_epoch', type=int, default=0)
@@ -75,6 +75,8 @@ def sample_z(batch_size, z_dim):
 
 def train(epoch, max_batches=100):
     datasource = islice(loader, max_batches)
+    ts = TimeSeries('Wasserstein GAN', max_batches)
+
     for batch_idx, (data, target) in enumerate(datasource):
         data = Variable(data.cuda())
 
@@ -103,10 +105,12 @@ def train(epoch, max_batches=100):
         optim_enc.step()
         optim_gen.step()
 
-        if batch_idx % 10 == 0:
-            print('disc loss', disc_loss.data[0], 'gen loss', gen_loss.data[0])
-            print("Losses:  AAC: {:.3f}  D {:.3f}  G {:.3f}".format(
-                aac_loss.data[0], disc_loss.data[0], gen_loss.data[0]))
+        ts.collect('Disc Loss', disc_loss)
+        ts.collect('Gen Loss', gen_loss)
+        ts.collect('L2 Loss', aac_loss)
+
+        ts.print_every(n_sec=4)
+
     scheduler_e.step()
     scheduler_d.step()
     scheduler_g.step()
@@ -125,8 +129,8 @@ def evaluate(epoch):
     print('TODO: evaluate')
 
 
-fixed_z = Variable(torch.randn(args.batch_size, Z_dim).cuda())
-fixed_zprime = Variable(torch.randn(args.batch_size, Z_dim).cuda())
+fixed_z = Variable(torch.randn(1, Z_dim).cuda())
+fixed_zprime = Variable(torch.randn(1, Z_dim).cuda())
 def make_video(output_video_name):
     v = imutil.VideoMaker(output_video_name)
     for i in range(100):
