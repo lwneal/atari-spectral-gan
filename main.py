@@ -25,22 +25,17 @@ parser.add_argument('--batch_size', type=int, default=64)
 parser.add_argument('--lr', type=float, default=2e-4)
 parser.add_argument('--checkpoint_dir', type=str, default='checkpoints')
 parser.add_argument('--epochs', type=int, default=10)
-
 parser.add_argument('--latent_size', type=int, default=10)
-parser.add_argument('--env_name', type=str, default='Pong-v0')
-
 parser.add_argument('--start_epoch', type=int, default=0)
 
 args = parser.parse_args()
+Z_dim = args.latent_size
 
 
-loader = AtariDataloader(name=args.env_name, batch_size=args.batch_size)
+loader = AtariDataloader(name='Pong-v0', batch_size=args.batch_size)
 
 
 print('Building model...')
-Z_dim = args.latent_size
-#number of updates to discriminator for every update to generator
-disc_iters = 5
 
 discriminator = model.Discriminator().cuda()
 generator = model.Generator(Z_dim).cuda()
@@ -65,12 +60,14 @@ scheduler_g = optim.lr_scheduler.ExponentialLR(optim_gen, gamma=0.99)
 scheduler_e = optim.lr_scheduler.ExponentialLR(optim_enc, gamma=0.99)
 print('Finished building model')
 
+
 def sample_z(batch_size, z_dim):
     # Normal Distribution
     z = torch.randn(batch_size, z_dim)
     return Variable(z.cuda())
 
-def train(epoch, max_batches=100):
+
+def train(epoch, max_batches=100, disc_iters=5):
     datasource = islice(loader, max_batches)
     ts = TimeSeries('Wasserstein GAN', max_batches)
 
