@@ -2,3 +2,5 @@ matplotlib
 gym
 gym[atari]
 tqdm
+numpy
+torch
