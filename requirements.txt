@@ -4,3 +4,4 @@ gym[atari]
 tqdm
 numpy
 torch
+tensorboard_logger
