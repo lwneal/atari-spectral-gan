@@ -68,10 +68,14 @@ def sample_z(batch_size, z_dim):
 
 
 def train(epoch, ts, max_batches=100, disc_iters=5):
-    datasource = islice(loader, max_batches)
 
-    for batch_idx, (data, target) in enumerate(datasource):
+    for batch_idx in range(max_batches):
+        # TODO: take actions based on output of a policy network
+        actions = [env.action_space.sample() for env in loader.environments]
+
+        data, rewards = loader.take_actions(actions)
         data = data.to(device)
+        rewards = rewards.to(device)
 
         # update discriminator
         for _ in range(disc_iters):

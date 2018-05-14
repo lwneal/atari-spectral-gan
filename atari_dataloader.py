@@ -23,6 +23,7 @@ class AtariDataloader():
     def __iter__(self):
         return self
 
+    # Use for unsupervised learning with random actions
     def __next__(self):
         observations = []
         positions = []
@@ -35,14 +36,42 @@ class AtariDataloader():
                 ly, ry, bx, by = find_positions(pixels)
                 if bx or by:
                     break
-            pixels = pixels / 255
+            # The ideal, fully-disentangled human representation
+            positions.append((ly, ry, bx, by))
 
-            # Output batch x channels x height x width
+            # Agent's input: batch x channels x height x width
+            pixels = pixels / 255
             pixels = pixels.transpose((2,0,1))
             observations.append(pixels)
-            positions.append((ly, ry, bx, by))
+
         # Standard API: next() returns two tensors (x, y)
-        return torch.Tensor(np.array(observations)), positions
+        return torch.Tensor(np.array(observations)), torch.Tensor(np.array(positions))
+
+    # Use for combined unsupervised + RL with agents
+    def take_actions(self, actions=None):
+        observations = []
+        rewards = []
+        # Default: random actions
+        if actions == None:
+            actions = [env.action_space.sample() for env in self.environments]
+        for env, action in zip(self.environments, actions):
+            while True:
+                obs, r, done, info = env.step(action)
+                if done:
+                    env.reset()
+                pixels = get_pixels(obs)
+                ly, ry, bx, by = find_positions(pixels)
+                if bx or by:
+                    break
+            rewards.append(r)
+
+            # Output batch x channels x height x width
+            pixels = pixels / 255
+            pixels = pixels.transpose((2,0,1))
+            observations.append(pixels)
+
+        # Returns (current frames, rewards from previous action)
+        return torch.Tensor(np.array(observations)), torch.Tensor(np.array(rewards))
 
 
 def get_pixels(obs):
