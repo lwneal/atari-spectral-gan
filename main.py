@@ -11,13 +11,13 @@ import torch.optim as optim
 from torch.optim.lr_scheduler import ExponentialLR
 from torchvision import datasets, transforms
 from torch import autograd
-from torch.autograd import Variable
 
 import model
 from atari_dataloader import AtariDataloader
 from series import TimeSeries
 import imutil
 
+device = torch.device("cuda")
 
 print('Parsing arguments')
 parser = argparse.ArgumentParser()
@@ -37,9 +37,9 @@ loader = AtariDataloader(batch_size=args.batch_size)
 
 print('Building model...')
 
-discriminator = model.Discriminator().cuda()
-generator = model.Generator(Z_dim).cuda()
-encoder = model.Encoder(Z_dim).cuda()
+discriminator = model.Discriminator().to(device)
+generator = model.Generator(Z_dim).to(device)
+encoder = model.Encoder(Z_dim).to(device)
 
 if args.start_epoch:
     generator.load_state_dict(torch.load('checkpoints/gen_{}'.format(args.start_epoch)))
@@ -64,14 +64,14 @@ print('Finished building model')
 def sample_z(batch_size, z_dim):
     # Normal Distribution
     z = torch.randn(batch_size, z_dim)
-    return Variable(z.cuda())
+    return z.to(device)
 
 
 def train(epoch, ts, max_batches=100, disc_iters=5):
     datasource = islice(loader, max_batches)
 
     for batch_idx, (data, target) in enumerate(datasource):
-        data = Variable(data.cuda())
+        data = data.to(device)
 
         # update discriminator
         for _ in range(disc_iters):
@@ -116,15 +116,15 @@ def evaluate(epoch):
 
     eval_loader = AtariDataloader(batch_size=args.batch_size)
     real_images, _ = next(eval_loader)
-    real_images = Variable(real_images).cuda()
+    real_images = real_images.to(device)
 
     # Reconstruct real frames
     reconstructed = generator(encoder(real_images))
-    reconstruction_l2 = torch.mean((reconstructed - real_images) ** 2).data[0]
+    reconstruction_l2 = torch.mean((reconstructed - real_images) ** 2).item()
 
     # Reconstruct generated frames
     reconstructed = generator(encoder(generator(fixed_z)))
-    cycle_reconstruction_l2 = torch.mean((real_images - reconstructed) ** 2).data[0]
+    cycle_reconstruction_l2 = torch.mean((real_images - reconstructed) ** 2).item()
 
     # TODO: Measure "goodness" of generated images
 
@@ -137,8 +137,8 @@ def evaluate(epoch):
     }
 
 
-fixed_z = Variable(torch.randn(1, Z_dim).cuda())
-fixed_zprime = Variable(torch.randn(1, Z_dim).cuda())
+fixed_z = torch.randn(1, Z_dim).to(device)
+fixed_zprime = torch.randn(1, Z_dim).to(device)
 def make_video(output_video_name):
     v = imutil.VideoMaker(output_video_name)
     for i in range(100):
